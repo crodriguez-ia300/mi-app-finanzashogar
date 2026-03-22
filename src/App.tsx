@@ -9,6 +9,7 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut
 } from 'firebase/auth';
 import { 
@@ -167,6 +168,8 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
+  const [authError, setAuthError] = useState<string | null>(null);
+
   // Auth initialization
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -180,11 +183,29 @@ export default function App() {
   }, []);
 
   const handleSignIn = async () => {
+    setAuthError(null);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
       await signInWithPopup(auth, provider);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Sign In Error:", e);
+      if (e.code === 'auth/popup-blocked') {
+        setAuthError("El navegador bloqueó la ventana emergente. Intentando método alternativo...");
+        try {
+            // Fallback to redirect if popup is blocked
+            await signInWithRedirect(auth, provider);
+        } catch (redirectError: any) {
+             console.error("Redirect Sign In Error:", redirectError);
+             setAuthError("No se pudo iniciar sesión. Por favor, permite las ventanas emergentes para este sitio.");
+        }
+      } else if (e.code === 'auth/unauthorized-domain') {
+        setAuthError("Dominio no autorizado. Por favor contacta al soporte.");
+      } else if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') {
+        setAuthError("La ventana de inicio de sesión se cerró antes de completar el proceso.");
+      } else {
+        setAuthError(e.message || "Error al iniciar sesión. Intenta de nuevo.");
+      }
     }
   };
 
@@ -799,6 +820,13 @@ export default function App() {
         </div>
         <h1 className="text-2xl font-bold text-blue-900 mb-2">Finanzas del Hogar</h1>
         <p className="text-gray-600 mb-8 text-sm">Gestiona tus gastos e ingresos con la ayuda de IA.</p>
+        
+        {authError && (
+          <div className="mb-6 w-full p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-left">
+            {authError}
+          </div>
+        )}
+
         <button 
           onClick={handleSignIn}
           className="w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-6 rounded-2xl shadow-sm border border-gray-200 transition-all flex items-center justify-center gap-3"
