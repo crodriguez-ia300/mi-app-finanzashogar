@@ -219,6 +219,7 @@ export default function AppWrapper() {
 
 function App() {
   const [activeTab, setActiveTab] = useState('resumen');
+  const [defaultTxType, setDefaultTxType] = useState<'income' | 'expense'>('expense');
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -436,10 +437,16 @@ function App() {
           </p>
         </div>
 
-        <button onClick={() => setActiveTab('gastos')} className="bg-[#cc2229] hover:bg-red-700 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold shadow-md transition-colors">
-          <div className="bg-white text-red-600 rounded-full w-5 h-5 flex items-center justify-center font-bold text-lg leading-none">+</div>
-          AÑADIR GASTO / INGRESO
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => { setDefaultTxType('expense'); setActiveTab('gastos'); }} className="flex-1 bg-[#cc2229] hover:bg-red-700 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold shadow-md transition-colors text-sm">
+            <div className="bg-white text-red-600 rounded-full w-5 h-5 flex items-center justify-center font-bold text-lg leading-none">+</div>
+            AÑADIR GASTO
+          </button>
+          <button onClick={() => { setDefaultTxType('income'); setActiveTab('gastos'); }} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold shadow-md transition-colors text-sm">
+            <div className="bg-white text-blue-600 rounded-full w-5 h-5 flex items-center justify-center font-bold text-lg leading-none">+</div>
+            AÑADIR INGRESO
+          </button>
+        </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -645,7 +652,7 @@ function App() {
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [category, setCategory] = useState('Súper');
-    const [type, setType] = useState<'income' | 'expense'>('expense');
+    const [type, setType] = useState<'income' | 'expense'>(defaultTxType);
     const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0]);
     const [smartText, setSmartText] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -909,7 +916,7 @@ function App() {
       </div>
       <div className="absolute bottom-0 w-full bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-6 py-4 pb-8 flex justify-between items-center z-50">
         <NavItem icon={<Grid size={24} />} label="RESUMEN" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} />
-        <NavItem icon={<PlusCircle size={24} />} label="GASTOS" active={activeTab === 'gastos'} onClick={() => setActiveTab('gastos')} />
+        <NavItem icon={<PlusCircle size={24} />} label="GASTOS" active={activeTab === 'gastos'} onClick={() => { setDefaultTxType('expense'); setActiveTab('gastos'); }} />
         <NavItem icon={<BarChart size={24} />} label="GRÁFICOS" active={activeTab === 'graficos'} onClick={() => setActiveTab('graficos')} />
         <NavItem icon={<History size={24} />} label="HISTORIAL" active={activeTab === 'historial'} onClick={() => setActiveTab('historial')} />
       </div>
