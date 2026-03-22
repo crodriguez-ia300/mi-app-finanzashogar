@@ -254,7 +254,8 @@ function App() {
       if (e.code === 'auth/popup-blocked') {
         setAuthError("El navegador bloqueó la ventana emergente. Por favor, abre la aplicación en una nueva pestaña para iniciar sesión.");
       } else if (e.code === 'auth/unauthorized-domain') {
-        setAuthError("Dominio no autorizado. Por favor contacta al soporte.");
+        const domain = window.location.hostname;
+        setAuthError(`Dominio no autorizado (${domain}). Por favor, añade este dominio en la consola de Firebase: Authentication -> Settings -> Authorized domains.`);
       } else if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') {
         setAuthError("La ventana de inicio de sesión se cerró. Por favor, intenta de nuevo y asegúrate de completar el proceso.");
       } else {
