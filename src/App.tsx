@@ -3,13 +3,61 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
+
+// --- Error Boundary ---
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-[390px] h-[844px] bg-[#F8F5EE] flex flex-col justify-center items-center shadow-2xl rounded-[3rem] border-[8px] border-black p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h1 className="text-xl font-bold text-red-600 mb-2">Algo salió mal</h1>
+          <p className="text-gray-600 text-sm mb-4">
+            {this.state.error?.message || "Ocurrió un error inesperado."}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm"
+          >
+            Recargar aplicación
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 import { 
   onAuthStateChanged, 
   User,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
   signOut
 } from 'firebase/auth';
 import { 
@@ -161,7 +209,15 @@ const TransactionItem = ({
 
 // --- Main App ---
 
-export default function App() {
+export default function AppWrapper() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+function App() {
   const [activeTab, setActiveTab] = useState('resumen');
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -178,6 +234,11 @@ export default function App() {
       if (!currentUser) {
         setLoadingData(false);
       }
+    }, (error) => {
+      console.error("Auth State Error:", error);
+      setAuthError("Error al verificar la sesión.");
+      setIsAuthReady(true);
+      setLoadingData(false);
     });
     return () => unsubscribe();
   }, []);
@@ -191,20 +252,13 @@ export default function App() {
     } catch (e: any) {
       console.error("Sign In Error:", e);
       if (e.code === 'auth/popup-blocked') {
-        setAuthError("El navegador bloqueó la ventana emergente. Intentando método alternativo...");
-        try {
-            // Fallback to redirect if popup is blocked
-            await signInWithRedirect(auth, provider);
-        } catch (redirectError: any) {
-             console.error("Redirect Sign In Error:", redirectError);
-             setAuthError("No se pudo iniciar sesión. Por favor, permite las ventanas emergentes para este sitio.");
-        }
+        setAuthError("El navegador bloqueó la ventana emergente. Por favor, abre la aplicación en una nueva pestaña para iniciar sesión.");
       } else if (e.code === 'auth/unauthorized-domain') {
         setAuthError("Dominio no autorizado. Por favor contacta al soporte.");
       } else if (e.code === 'auth/cancelled-popup-request' || e.code === 'auth/popup-closed-by-user') {
-        setAuthError("La ventana de inicio de sesión se cerró antes de completar el proceso.");
+        setAuthError("La ventana de inicio de sesión se cerró. Por favor, intenta de nuevo y asegúrate de completar el proceso.");
       } else {
-        setAuthError(e.message || "Error al iniciar sesión. Intenta de nuevo.");
+        setAuthError(`Error al iniciar sesión: ${e.message || e.code || 'Desconocido'}`);
       }
     }
   };
@@ -803,7 +857,7 @@ export default function App() {
     );
   };
 
-  if (loadingData && !isAuthReady) {
+  if (!isAuthReady || (isAuthReady && user && loadingData)) {
     return (
       <div className="w-[390px] h-[844px] bg-[#F8F5EE] flex flex-col justify-center items-center shadow-2xl rounded-[3rem] border-[8px] border-black p-8 text-center">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -822,8 +876,14 @@ export default function App() {
         <p className="text-gray-600 mb-8 text-sm">Gestiona tus gastos e ingresos con la ayuda de IA.</p>
         
         {authError && (
-          <div className="mb-6 w-full p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-left">
-            {authError}
+          <div className="mb-6 w-full p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-left flex flex-col gap-2">
+            <p>{authError}</p>
+            <button 
+              onClick={() => window.open(window.location.href, '_blank')}
+              className="mt-2 text-xs font-bold bg-white border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors text-center"
+            >
+              Abrir app en una nueva pestaña
+            </button>
           </div>
         )}
 
