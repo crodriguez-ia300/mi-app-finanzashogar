@@ -1,0 +1,110 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: /users/{userId}
+// Document ID: userId (string)
+// Fields:
+//   - uid: string (required) - The UID of the user.
+//   - email: string (required) - User's email address.
+//   - displayName: string (optional) - User's display name.
+//   - photoURL: string (optional) - URL to the user's profile photo.
+//   - role: string (required, enum: ['user', 'admin']) - User's role.
+//
+// Collection: /users/{userId}/transactions/{transactionId}
+// Document ID: transactionId (string)
+// Fields:
+//   - id: string (required) - Unique ID for the transaction.
+//   - title: string (required, max 100 chars) - Title or note for the transaction.
+//   - category: string (required, max 50 chars) - Category of the transaction.
+//   - amount: number (required, positive) - The amount of the transaction.
+//   - type: string (required, enum: ['income', 'expense']) - Type of transaction.
+//   - date: string (required, ISO 8601) - ISO 8601 date string.
+//   - icon: string (required, max 50 chars) - Icon name for the transaction.
+//   - uid: string (required) - The UID of the user who owns this transaction.
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "crodriguez.ia300@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'role']) &&
+             hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role']) &&
+             data.uid is string &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['user', 'admin'];
+    }
+
+    function isValidTransaction(data) {
+      return hasRequiredFields(['id', 'title', 'category', 'amount', 'type', 'date', 'icon', 'uid']) &&
+             hasOnlyAllowedFields(['id', 'title', 'category', 'amount', 'type', 'date', 'icon', 'uid']) &&
+             data.id is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 50 &&
+             data.amount is number && data.amount >= 0 &&
+             data.type in ['income', 'expense'] &&
+             isValidDateString(data.date) &&
+             data.icon is string && data.icon.size() <= 50 &&
+             data.uid is string && data.uid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) && request.resource.data.role == resource.data.role || isAdmin());
+      
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidTransaction(request.resource.data);
+        allow update: if isOwner(userId) && isValidTransaction(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
