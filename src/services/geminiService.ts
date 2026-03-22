@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY! });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export const getFinancialAdvice = async (transactions: any[]) => {
   const recentTxs = transactions.slice(0, 10).map(t => `${t.date.split('T')[0]} - ${t.category}: ${t.type === 'expense' ? '-' : '+'}$${t.amount}`).join('\n');

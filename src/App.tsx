@@ -317,7 +317,12 @@ function App() {
     }
   };
 
-  const formatMoney = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  const formatMoney = (amount: number) => {
+    const rounded = Math.round(amount || 0);
+    const isNegative = rounded < 0;
+    const absValue = Math.abs(rounded);
+    return (isNegative ? '-' : '') + '$' + absValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
 
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
@@ -630,18 +635,18 @@ function App() {
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[9px] text-gray-400 uppercase font-semibold mb-1">Máximo Gasto Diario</p>
-            <p className="text-sm font-bold text-red-600">{maxDateStr}</p>
-            <p className="text-[10px] text-gray-500 mt-1 truncate">
+        <div className="flex gap-3">
+          <div className="flex-1 bg-white rounded-[1.25rem] p-4 shadow-sm flex flex-col justify-center">
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1.5">Máximo Gasto Diario</p>
+            <p className="text-lg font-bold text-[#FF1A1A] leading-none">{maxDateStr}</p>
+            <p className="text-xs text-slate-500 mt-2 font-medium truncate">
               {maxTx ? `${maxTx.title} • ${formatMoney(maxTx.amount)}` : 'Sin gastos registrados'}
             </p>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm w-1/3 flex flex-col justify-center items-center text-center">
-            <p className="text-[9px] text-gray-400 uppercase font-semibold mb-1">Ahorro</p>
-            <p className="text-xl font-bold text-blue-600">{formatMoney(Math.max(transactions.filter(t => t.type === 'income').reduce((a,c)=>a+c.amount,0) - transactions.filter(t => t.type === 'expense').reduce((a,c)=>a+c.amount,0), 0))}</p>
-            <p className="text-[9px] text-gray-400 mt-1">Total acumulado</p>
+          <div className="flex-1 bg-white rounded-[1.25rem] p-4 shadow-sm flex flex-col justify-center items-center">
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide mb-1.5">Ahorro</p>
+            <p className="text-[28px] font-bold text-[#2563EB] leading-none">{formatMoney(Math.max(transactions.filter(t => t.type === 'income').reduce((a,c)=>a+c.amount,0) - transactions.filter(t => t.type === 'expense').reduce((a,c)=>a+c.amount,0), 0))}</p>
+            <p className="text-[10px] text-slate-400 mt-2 font-medium">Total acumulado</p>
           </div>
         </div>
       </div>
