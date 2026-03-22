@@ -430,13 +430,13 @@ function App() {
           </button>
         </div>
 
-        <div className="bg-blue-500 text-white rounded-[2rem] p-6 shadow-md relative overflow-hidden">
+        <div className={cn("text-white rounded-[2rem] p-6 shadow-md relative overflow-hidden transition-colors", currentBalance < 0 ? "bg-red-500" : "bg-blue-500")}>
           <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
             <div className="w-[150px] h-[150px] bg-white rounded-full opacity-20"></div>
           </div>
           <p className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">Saldo Total</p>
           <h3 className="text-4xl font-bold mb-2 tracking-tight">{formatMoney(currentBalance)}</h3>
-          <p className="text-xs text-blue-100 flex items-center gap-1">
+          <p className={cn("text-xs flex items-center gap-1", currentBalance < 0 ? "text-red-100" : "text-blue-100")}>
             <Zap size={12} />
             Actualizado y guardado
           </p>
